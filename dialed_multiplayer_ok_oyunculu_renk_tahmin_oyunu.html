@@ -1,0 +1,2381 @@
+<!DOCTYPE html>
+<html lang="tr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIALED // MULTIPLAYER — Çok Oyunculu Renk Tutturma Oyunu</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        studio: {
+                            bg: '#090a0c',
+                            surface: '#111318',
+                            card: '#161920',
+                            border: '#252934',
+                            muted: '#8a93a6'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        input, textarea, code, pre {
+            user-select: text;
+            -webkit-user-select: text;
+        }
+        body {
+            background-color: #090a0c;
+            color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Subtle Studio Grid Background */
+        .bg-studio-grid {
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.04) 0%, transparent 60%),
+                linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* Custom Tactile Range Sliders for Dialed.gg Feel */
+        .dial-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 36px;
+            border-radius: 12px;
+            outline: none;
+            cursor: pointer;
+            position: relative;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 4px 12px rgba(0, 0, 0, 0.4);
+            transition: box-shadow 0.15s ease;
+        }
+        .dial-slider:hover {
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28), 0 4px 16px rgba(0, 0, 0, 0.5);
+        }
+        .dial-slider:focus {
+            box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.5), 0 4px 20px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Slider Thumb */
+        .dial-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 44px;
+            border-radius: 8px;
+            background: #ffffff;
+            border: 3px solid #090a0c;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.4);
+            cursor: grab;
+            transition: transform 0.1s ease, background-color 0.15s ease;
+        }
+        .dial-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.06);
+        }
+        .dial-slider::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(0.98);
+            background: #f3f4f6;
+        }
+
+        .dial-slider::-moz-range-thumb {
+            width: 22px;
+            height: 44px;
+            border-radius: 8px;
+            background: #ffffff;
+            border: 3px solid #090a0c;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.4);
+            cursor: grab;
+            transition: transform 0.1s ease;
+        }
+
+        /* Hue Rainbow Track */
+        #slider-hue {
+            background: linear-gradient(to right,
+                hsl(0, 100%, 50%) 0%,
+                hsl(60, 100%, 50%) 16.66%,
+                hsl(120, 100%, 50%) 33.33%,
+                hsl(180, 100%, 50%) 50%,
+                hsl(240, 100%, 50%) 66.66%,
+                hsl(300, 100%, 50%) 83.33%,
+                hsl(360, 100%, 50%) 100%
+            );
+        }
+
+        /* Swatch Inner Border & Depth */
+        .swatch-box {
+            box-shadow: 
+                inset 0 0 0 1px rgba(255, 255, 255, 0.15),
+                0 20px 50px -12px rgba(0, 0, 0, 0.7);
+            transition: background-color 0.06s linear, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Smooth Reveal Animations */
+        @keyframes slideUpFade {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-reveal {
+            animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090a0c;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #252934;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #383e4e;
+        }
+    </style>
+</head>
+<body class="bg-studio-grid min-h-screen flex flex-col justify-between text-gray-100 antialiased selection:bg-white selection:text-black">
+
+    <!-- ===================================================================== -->
+    <!-- TOP NAVIGATION BAR                                                    -->
+    <!-- ===================================================================== -->
+    <header class="w-full border-b border-studio-border/80 bg-studio-bg/85 backdrop-blur-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-3">
+                <button onclick="window.app.handleLogoClick()" class="group flex items-center gap-3 text-left focus:outline-none">
+                    <div class="w-9 h-9 rounded-xl p-[2px] bg-gradient-to-tr from-rose-500 via-amber-400 to-indigo-500 shadow-lg shadow-indigo-500/10">
+                        <div class="w-full h-full bg-studio-bg rounded-[10px] flex items-center justify-center">
+                            <span class="w-4 h-4 rounded-full bg-gradient-to-tr from-rose-500 via-emerald-400 to-sky-500 group-hover:scale-110 transition-transform"></span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold tracking-tight text-lg text-white">DIALED</span>
+                            <span class="text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/10 text-gray-300 border border-white/10">MULTIPLAYER</span>
+                        </div>
+                        <p class="text-[11px] text-studio-muted hidden sm:block">Kromatik Hafıza &amp; Renk Tutturma Oyunu</p>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Room Code Pill (Shown when inside a room) -->
+            <div id="nav-room-badge" class="hidden items-center gap-2 bg-studio-surface border border-studio-border px-3 py-1.5 rounded-xl">
+                <span class="text-xs text-studio-muted">ODA:</span>
+                <span id="nav-room-code" class="font-mono font-bold text-sm tracking-wider text-white">---</span>
+                <button onclick="window.app.copyRoomCode()" title="Oda Kodunu Kopyala" class="p-1 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+
+            <!-- Right Controls: Connection Badge, Rules, Firebase API Modal -->
+            <div class="flex items-center gap-2">
+                <!-- Connection Status Indicator -->
+                <button onclick="window.app.openFirebaseModal()" id="connection-status-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-studio-surface hover:bg-studio-card border border-studio-border transition-all">
+                    <span id="conn-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    <span id="conn-text" class="hidden md:inline text-gray-300">Bağlanıyor...</span>
+                    <i data-lucide="database" class="w-3.5 h-3.5 text-gray-400"></i>
+                </button>
+
+                <!-- How to Play / Scoring Info Button -->
+                <button onclick="window.app.openRulesModal()" class="p-2 rounded-xl bg-studio-surface hover:bg-studio-card border border-studio-border text-gray-300 hover:text-white transition-colors" title="Nasıl Oynanır & Puanlama Sistemi">
+                    <i data-lucide="help-circle" class="w-4 h-4"></i>
+                </button>
+
+                <!-- Leave Room Button (Visible when in room) -->
+                <button id="nav-leave-btn" onclick="window.app.leaveRoom()" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-colors">
+                    <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                    <span class="hidden sm:inline">Odadan Çık</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===================================================================== -->
+    <!-- MAIN APPLICATION CONTAINER                                            -->
+    <!-- ===================================================================== -->
+    <main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col justify-center">
+
+        <!-- ================================================================= -->
+        <!-- VIEW 1: LANDING / CREATE OR JOIN ROOM                             -->
+        <!-- ================================================================= -->
+        <section id="view-home" class="w-full max-w-4xl mx-auto my-auto py-4">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                
+                <!-- Left Column: Hero & Interactive Demo Swatch -->
+                <div class="lg:col-span-7 bg-studio-surface border border-studio-border rounded-3xl p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden">
+                    <div class="space-y-4 z-10">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-gray-300">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            <span>CANLI ÇOK OYUNCULU RENK ARENASI</span>
+                        </div>
+
+                        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
+                            Rengi hafızana kazı.<br>
+                            <span class="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-300 to-sky-400">En yakın tonu sen tuttur.</span>
+                        </h1>
+
+                        <p class="text-sm sm:text-base text-studio-muted leading-relaxed">
+                            Odadaki herkese aynı anda tek bir hedef renk gösterilir. Süre baskısı olmadan <strong>Ton (H)</strong>, <strong>Doygunluk (S)</strong> ve <strong>Parlaklık (L)</strong> sürgüleriyle rengi bul ve kilitle.
+                        </p>
+                    </div>
+
+                    <!-- Scoring Rule Callout Box -->
+                    <div class="my-6 p-4 rounded-2xl bg-studio-card/90 border border-studio-border/90 space-y-2.5 z-10">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-mono uppercase tracking-wider text-amber-400 font-semibold flex items-center gap-1.5">
+                                <i data-lucide="award" class="w-4 h-4"></i>
+                                Sıralamalı Artan Puan Sistemi (1 &rarr; N)
+                            </span>
+                            <span class="text-[11px] font-mono text-studio-muted">Süre Sınırı Yok</span>
+                        </div>
+                        <p class="text-xs text-gray-300 leading-relaxed">
+                            Herkes rengini kilitlediğinde, tahminler hedef renge <strong>en yakından en uzağa</strong> doğru sıralanır. Odada <strong>N</strong> kişi varsa; en uzak tahmini yapan <strong>1 puan</strong>, bir sonraki <strong>2 puan</strong>, ... ve hedefe en yakın olan <strong>N puan</strong> kazanır!
+                        </p>
+                        <div class="grid grid-cols-4 gap-2 pt-1 text-center font-mono text-[11px]">
+                            <div class="p-2 rounded-xl bg-studio-bg/80 border border-white/5">
+                                <div class="text-gray-500">4. (En Uzak)</div>
+                                <div class="text-white font-bold mt-0.5">+1 Puan</div>
+                            </div>
+                            <div class="p-2 rounded-xl bg-studio-bg/80 border border-white/5">
+                                <div class="text-gray-400">3. Yakın</div>
+                                <div class="text-white font-bold mt-0.5">+2 Puan</div>
+                            </div>
+                            <div class="p-2 rounded-xl bg-studio-bg/80 border border-white/5">
+                                <div class="text-gray-300">2. Yakın</div>
+                                <div class="text-amber-300 font-bold mt-0.5">+3 Puan</div>
+                            </div>
+                            <div class="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+                                <div class="text-emerald-300">1. (En Yakın)</div>
+                                <div class="text-emerald-400 font-bold mt-0.5">+4 Puan</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mini Interactive Preview Bar -->
+                    <div class="pt-2 border-t border-studio-border/60 flex items-center justify-between text-xs text-studio-muted z-10">
+                        <span class="flex items-center gap-1.5">
+                            <i data-lucide="sliders" class="w-3.5 h-3.5 text-sky-400"></i>
+                            CIE ΔE Algısal Renk Mesafesi Hesaplaması
+                        </span>
+                        <span class="font-mono text-gray-400">HSL + HEX</span>
+                    </div>
+                </div>
+
+                <!-- Right Column: Player Setup & Room Actions -->
+                <div class="lg:col-span-5 bg-studio-surface border border-studio-border rounded-3xl p-6 sm:p-8 flex flex-col justify-between space-y-6">
+                    <div class="space-y-5">
+                        <div>
+                            <h2 class="text-xl font-bold text-white">Oyuna Giriş</h2>
+                            <p class="text-xs text-studio-muted mt-1">Takma adını belirle, yeni bir oda kur veya arkadaşının odasına katıl.</p>
+                        </div>
+
+                        <!-- Player Nickname Input -->
+                        <div class="space-y-2">
+                            <label for="input-nickname" class="block text-xs font-mono uppercase tracking-wider text-gray-400">Oyuncu Adın</label>
+                            <div class="relative">
+                                <input id="input-nickname" type="text" maxlength="18" placeholder="Örn: RenkUstası" 
+                                    class="w-full px-4 py-3 rounded-xl bg-studio-bg border border-studio-border focus:border-white/50 focus:outline-none text-white font-medium text-sm transition-colors">
+                                <button onclick="window.app.randomizeNickname()" title="Rastgele İsim" class="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                                    <i data-lucide="dices" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Create Room Button -->
+                        <div class="pt-1">
+                            <button onclick="window.app.createRoom()" id="btn-create-room"
+                                class="w-full py-3.5 px-5 rounded-2xl bg-white hover:bg-gray-100 active:scale-[0.99] text-black font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-white/5 transition-all">
+                                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                                <span>Yeni Oda Oluştur (Oda Kurucu)</span>
+                            </button>
+                        </div>
+
+                        <!-- Divider -->
+                        <div class="relative flex py-1 items-center">
+                            <div class="flex-grow border-t border-studio-border"></div>
+                            <span class="flex-shrink mx-3 text-[11px] font-mono uppercase text-studio-muted">VEYA ODAYA KATIL</span>
+                            <div class="flex-grow border-t border-studio-border"></div>
+                        </div>
+
+                        <!-- Join Room Input & Button -->
+                        <div class="space-y-2">
+                            <label for="input-room-code" class="block text-xs font-mono uppercase tracking-wider text-gray-400">Oda Kodu</label>
+                            <div class="flex gap-2">
+                                <input id="input-room-code" type="text" maxlength="8" placeholder="Örn: DLD482" 
+                                    class="w-full px-4 py-3 rounded-xl bg-studio-bg border border-studio-border focus:border-white/50 focus:outline-none text-white font-mono uppercase tracking-widest text-sm text-center">
+                                <button onclick="window.app.joinRoomByInput()" id="btn-join-room"
+                                    class="px-5 py-3 rounded-xl bg-studio-card hover:bg-white/10 border border-studio-border text-white font-semibold text-sm flex items-center gap-1.5 transition-all shrink-0">
+                                    <span>Katıl</span>
+                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Active Public Rooms List (Live from Firebase) -->
+                    <div class="pt-4 border-t border-studio-border/80 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-mono uppercase tracking-wider text-studio-muted flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                Açık Odalar (Canlı)
+                            </span>
+                            <button onclick="window.app.refreshRoomsList()" class="text-[11px] text-gray-400 hover:text-white flex items-center gap-1">
+                                <i data-lucide="refresh-cw" class="w-3 h-3"></i> Yenile
+                            </button>
+                        </div>
+                        <div id="active-rooms-list" class="max-h-32 overflow-y-auto space-y-1.5 pr-1">
+                            <div class="text-xs text-studio-muted py-2 text-center">Açık oda aranıyor...</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- VIEW 2: ACTIVE ROOM (LOBBY + GAMEPLAY + REVEAL + PODIUM)          -->
+        <!-- ================================================================= -->
+        <section id="view-room" class="hidden w-full">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+                <!-- ========================================================= -->
+                <!-- LEFT / CENTER MAIN STAGE (8 COLS)                         -->
+                <!-- ========================================================= -->
+                <div class="lg:col-span-8 space-y-6">
+
+                    <!-- ----------------------------------------------------- -->
+                    <!-- STAGE A: LOBBY VIEW (Waiting for Players & Settings)  -->
+                    <!-- ----------------------------------------------------- -->
+                    <div id="stage-lobby" class="bg-studio-surface border border-studio-border rounded-3xl p-6 sm:p-8 space-y-6">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-studio-border">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Lobi Bekleme Odası</span>
+                                    <span id="lobby-host-badge" class="hidden px-2.5 py-0.5 rounded-full text-[11px] font-mono uppercase bg-amber-500/10 text-amber-300 border border-amber-500/20">Oda Kurucususun</span>
+                                </div>
+                                <h2 class="text-2xl font-bold text-white mt-2">Oyuncular Bekleniyor...</h2>
+                                <p class="text-xs text-studio-muted mt-0.5">Arkadaşlarına oda kodunu gönder. Herkes girdiğinde oyunu başlatabilirsin.</p>
+                            </div>
+
+                            <!-- Prominent Room Code Copy Box -->
+                            <div class="bg-studio-bg border border-studio-border rounded-2xl p-3.5 flex items-center gap-4 self-start sm:self-auto">
+                                <div>
+                                    <div class="text-[10px] font-mono uppercase text-studio-muted">ODA KODU</div>
+                                    <div id="lobby-room-code" class="text-2xl font-mono font-extrabold tracking-widest text-white">------</div>
+                                </div>
+                                <button onclick="window.app.copyRoomCode()" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-semibold text-white flex items-center gap-1.5 transition-colors">
+                                    <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                                    <span>Kopyala</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Game Settings (Editable by Host, Read-only for Guests) -->
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-xs font-mono uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                                    <i data-lucide="settings-2" class="w-4 h-4 text-sky-400"></i>
+                                    Oyun Kuralları &amp; Mod Ayarları
+                                </h3>
+                                <span id="settings-lock-note" class="text-[11px] text-studio-muted">Sadece oda kurucusu değiştirebilir</span>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <!-- Setting 1: Target Display Mode -->
+                                <div class="bg-studio-card border border-studio-border rounded-2xl p-4 space-y-2">
+                                    <label class="block text-xs font-semibold text-gray-300">Hedef Renk Gösterimi</label>
+                                    <select id="setting-memorize-time" onchange="window.app.updateRoomSettings()" class="w-full bg-studio-bg border border-studio-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+                                        <option value="5">5 Saniye Hafızaya Al (Klasik Dialed)</option>
+                                        <option value="3">3 Saniye Hafızaya Al (Zor)</option>
+                                        <option value="8">8 Saniye Hafızaya Al (Rahat)</option>
+                                        <option value="0">Hedef Renk Hep Ekranda Kalsın</option>
+                                    </select>
+                                    <p class="text-[11px] text-studio-muted leading-tight">Hedef rengin ekranda ne kadar süre gösterileceğini belirler.</p>
+                                </div>
+
+                                <!-- Setting 2: Total Rounds -->
+                                <div class="bg-studio-card border border-studio-border rounded-2xl p-4 space-y-2">
+                                    <label class="block text-xs font-semibold text-gray-300">Toplam Tur Sayısı</label>
+                                    <select id="setting-total-rounds" onchange="window.app.updateRoomSettings()" class="w-full bg-studio-bg border border-studio-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+                                        <option value="5">5 Tur (Standart Maç)</option>
+                                        <option value="3">3 Tur (Hızlı Maç)</option>
+                                        <option value="8">8 Tur (Uzun Maç)</option>
+                                        <option value="10">10 Tur (Maraton)</option>
+                                        <option value="999">Sınırsız / Serbest Tur</option>
+                                    </select>
+                                    <p class="text-[11px] text-studio-muted leading-tight">Her tur sonunda 1'den N'e kadar puanlar toplanır.</p>
+                                </div>
+
+                                <!-- Setting 3: Preview Mode -->
+                                <div class="bg-studio-card border border-studio-border rounded-2xl p-4 space-y-2">
+                                    <label class="block text-xs font-semibold text-gray-300">Tahmin Önizleme Modu</label>
+                                    <select id="setting-blind-preview" onchange="window.app.updateRoomSettings()" class="w-full bg-studio-bg border border-studio-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none">
+                                        <option value="show">Kendi Rengini Canlı Gör (Standart)</option>
+                                        <option value="blind">Kör Mod (Sadece Sürgülerle Tahmin Et)</option>
+                                    </select>
+                                    <p class="text-[11px] text-studio-muted leading-tight">Ayarlama yaparken kendi renk kutunu görüp görmeyeceğin.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bot Management for Testing & Solo Fun -->
+                        <div id="host-bot-controls" class="p-4 rounded-2xl bg-studio-bg/90 border border-studio-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                            <div class="space-y-0.5">
+                                <div class="text-xs font-semibold text-white flex items-center gap-1.5">
+                                    <i data-lucide="bot" class="w-4 h-4 text-indigo-400"></i>
+                                    <span>Simülasyon / Yapay Zeka Oyuncu Ekle (Test İçin)</span>
+                                </div>
+                                <p class="text-[11px] text-studio-muted">Tek başına test ederken 1, 2, 3, 4... puan sıralamasını görmek için odaya bot ekleyebilirsin.</p>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button onclick="window.app.addBotPlayer()" class="px-3 py-2 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                                    <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+                                    <span>+ Bot Ekle</span>
+                                </button>
+                                <button onclick="window.app.removeBots()" class="px-2.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white text-xs transition-colors" title="Botları Temizle">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Start Match Action -->
+                        <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div class="text-xs text-studio-muted flex items-center gap-2">
+                                <i data-lucide="users" class="w-4 h-4 text-emerald-400"></i>
+                                <span>Bu turda en yakın oyuncu <strong id="lobby-max-points" class="text-white">1</strong> puan, en uzak oyuncu <strong class="text-white">1</strong> puan alacak.</span>
+                            </div>
+
+                            <button id="btn-start-game" onclick="window.app.startNewRound(true)"
+                                class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white hover:bg-gray-100 text-black font-extrabold text-sm flex items-center justify-center gap-2 shadow-xl shadow-white/10 transition-all">
+                                <i data-lucide="play" class="w-4 h-4 fill-black"></i>
+                                <span>OYUNU BAŞLAT</span>
+                            </button>
+                            <div id="guest-waiting-msg" class="hidden text-xs font-mono text-amber-300 bg-amber-500/10 border border-amber-500/20 px-4 py-3 rounded-xl">
+                                Oda kurucusunun oyunu başlatması bekleniyor...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ----------------------------------------------------- -->
+                    <!-- STAGE B: ACTIVE ROUND (Memorize & Dial-In Controls)   -->
+                    <!-- ----------------------------------------------------- -->
+                    <div id="stage-play" class="hidden bg-studio-surface border border-studio-border rounded-3xl p-5 sm:p-8 space-y-6">
+                        
+                        <!-- Round Header Bar -->
+                        <div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-studio-border">
+                            <div class="flex items-center gap-3">
+                                <span id="round-badge" class="px-3 py-1 rounded-xl bg-white/10 text-white font-mono text-xs font-bold">TUR 1 / 5</span>
+                                <span id="phase-status-text" class="text-sm font-semibold text-amber-300 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                                    Hedef Rengi Hafızana Kazı!
+                                </span>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <span id="locked-counter-pill" class="px-3 py-1 rounded-xl bg-studio-bg border border-studio-border font-mono text-xs text-gray-300">
+                                    0 / 1 Kilitledi
+                                </span>
+                                <!-- Host Force Reveal Button -->
+                                <button id="btn-host-force-reveal" onclick="window.app.hostForceReveal()" class="hidden px-3 py-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-semibold transition-colors">
+                                    Turu Bitir &amp; Açıkla
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Countdown Bar for Memorize Phase -->
+                        <div id="memorize-progress-wrap" class="w-full bg-studio-bg rounded-full h-2 overflow-hidden border border-white/5">
+                            <div id="memorize-progress-bar" class="h-full bg-gradient-to-r from-emerald-400 via-amber-300 to-rose-500 transition-all duration-100" style="width: 100%;"></div>
+                        </div>
+
+                        <!-- Swatch Display Arena -->
+                        <div id="swatches-arena" class="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
+                            
+                            <!-- Target Color Card -->
+                            <div id="target-swatch-card" class="flex flex-col justify-between rounded-2xl bg-studio-card border border-studio-border p-4 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-mono uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                                        <i data-lucide="crosshair" class="w-3.5 h-3.5 text-rose-400"></i>
+                                        HEDEF RENK
+                                    </span>
+                                    <span id="target-timer-badge" class="text-xs font-mono font-bold text-amber-400">5.0s</span>
+                                </div>
+
+                                <div class="relative w-full h-48 sm:h-56 rounded-2xl overflow-hidden">
+                                    <!-- Actual Target Color Swatch -->
+                                    <div id="target-color-box" class="w-full h-full swatch-box rounded-2xl flex items-center justify-center"></div>
+
+                                    <!-- Hidden Curtain Overlay when Memorize time ends -->
+                                    <div id="target-hidden-overlay" class="hidden absolute inset-0 bg-studio-bg/95 backdrop-blur-md rounded-2xl border border-studio-border flex flex-col items-center justify-center p-6 text-center space-y-2">
+                                        <div class="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400">
+                                            <i data-lucide="eye-off" class="w-5 h-5"></i>
+                                        </div>
+                                        <div class="text-sm font-bold text-white">Hedef Renk Gizlendi</div>
+                                        <p class="text-xs text-studio-muted max-w-xs">
+                                            Şimdi hafızandaki rengi aşağıdaki H, S, L sürgüleriyle tutturmaya çalış!
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Player's Live Dialed Color Card -->
+                            <div class="flex flex-col justify-between rounded-2xl bg-studio-card border border-studio-border p-4 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-mono uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                                        <i data-lucide="palette" class="w-3.5 h-3.5 text-sky-400"></i>
+                                        SENİN SEÇTİĞİN RENK
+                                    </span>
+                                    <span id="player-hex-readout" class="text-xs font-mono font-bold text-gray-200 bg-studio-bg px-2.5 py-0.5 rounded-lg border border-studio-border">#808080</span>
+                                </div>
+
+                                <div class="relative w-full h-48 sm:h-56 rounded-2xl overflow-hidden">
+                                    <div id="player-color-box" class="w-full h-full swatch-box rounded-2xl"></div>
+
+                                    <!-- Blind Mode Overlay (if enabled) -->
+                                    <div id="player-blind-overlay" class="hidden absolute inset-0 bg-studio-bg/95 backdrop-blur-md rounded-2xl border border-studio-border flex flex-col items-center justify-center p-6 text-center space-y-2">
+                                        <i data-lucide="sparkles" class="w-6 h-6 text-indigo-400"></i>
+                                        <div class="text-sm font-bold text-white">Kör Tahmin Modu Aktif</div>
+                                        <p class="text-xs text-studio-muted">Önizleme kapalı! Sadece HSL değerlerini hissederek rengi kilitle.</p>
+                                    </div>
+
+                                    <!-- Locked Badge Overlay -->
+                                    <div id="player-locked-overlay" class="hidden absolute bottom-3 right-3 px-3 py-1.5 rounded-xl bg-black/75 backdrop-blur-md border border-emerald-500/40 text-emerald-400 text-xs font-mono font-bold flex items-center gap-1.5 shadow-lg">
+                                        <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                                        <span>RENGİN KİLİTLENDİ</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- ================================================= -->
+                        <!-- DIALED.GG TACTILE HSL SLIDERS                     -->
+                        <!-- ================================================= -->
+                        <div id="sliders-panel" class="space-y-5 pt-2">
+                            
+                            <!-- Slider 1: HUE (Ton: 0 - 360) -->
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <label for="slider-hue" class="text-xs font-mono uppercase tracking-wider text-gray-300 font-semibold flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                                        <span>HUE // RENK TONU</span>
+                                    </label>
+                                    <div class="flex items-center gap-1.5">
+                                        <button onclick="window.app.nudgeSlider('h', -1)" class="w-7 h-7 rounded-lg bg-studio-bg hover:bg-white/10 border border-studio-border text-gray-300 font-mono text-xs flex items-center justify-center">-</button>
+                                        <span id="val-hue" class="w-14 text-center font-mono text-sm font-bold text-white bg-studio-bg py-1 rounded-lg border border-studio-border">180°</span>
+                                        <button onclick="window.app.nudgeSlider('h', 1)" class="w-7 h-7 rounded-lg bg-studio-bg hover:bg-white/10 border border-studio-border text-gray-300 font-mono text-xs flex items-center justify-center">+</button>
+                                    </div>
+                                </div>
+                                <input id="slider-hue" type="range" min="0" max="360" step="1" value="180"
+                                    oninput="window.app.onSliderChange()" class="dial-slider">
+                            </div>
+
+                            <!-- Slider 2: SATURATION (Doygunluk: 0 - 100%) -->
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <label for="slider-sat" class="text-xs font-mono uppercase tracking-wider text-gray-300 font-semibold flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+                                        <span>SATURATION // DOYGUNLUK</span>
+                                    </label>
+                                    <div class="flex items-center gap-1.5">
+                                        <button onclick="window.app.nudgeSlider('s', -1)" class="w-7 h-7 rounded-lg bg-studio-bg hover:bg-white/10 border border-studio-border text-gray-300 font-mono text-xs flex items-center justify-center">-</button>
+                                        <span id="val-sat" class="w-14 text-center font-mono text-sm font-bold text-white bg-studio-bg py-1 rounded-lg border border-studio-border">50%</span>
+                                        <button onclick="window.app.nudgeSlider('s', 1)" class="w-7 h-7 rounded-lg bg-studio-bg hover:bg-white/10 border border-studio-border text-gray-300 font-mono text-xs flex items-center justify-center">+</button>
+                                    </div>
+                                </div>
+                                <input id="slider-sat" type="range" min="0" max="100" step="1" value="50"
+                                    oninput="window.app.onSliderChange()" class="dial-slider">
+                            </div>
+
+                            <!-- Slider 3: LIGHTNESS (Parlaklık: 0 - 100%) -->
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <label for="slider-light" class="text-xs font-mono uppercase tracking-wider text-gray-300 font-semibold flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full bg-amber-300"></span>
+                                        <span>LIGHTNESS // PARLAKLIK</span>
+                                    </label>
+                                    <div class="flex items-center gap-1.5">
+                                        <button onclick="window.app.nudgeSlider('l', -1)" class="w-7 h-7 rounded-lg bg-studio-bg hover:bg-white/10 border border-studio-border text-gray-300 font-mono text-xs flex items-center justify-center">-</button>
+                                        <span id="val-light" class="w-14 text-center font-mono text-sm font-bold text-white bg-studio-bg py-1 rounded-lg border border-studio-border">50%</span>
+                                        <button onclick="window.app.nudgeSlider('l', 1)" class="w-7 h-7 rounded-lg bg-studio-bg hover:bg-white/10 border border-studio-border text-gray-300 font-mono text-xs flex items-center justify-center">+</button>
+                                    </div>
+                                </div>
+                                <input id="slider-light" type="range" min="0" max="100" step="1" value="50"
+                                    oninput="window.app.onSliderChange()" class="dial-slider">
+                            </div>
+
+                        </div>
+
+                        <!-- Lock In / Unlock Button Area -->
+                        <div class="pt-3 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-studio-border">
+                            <div class="text-xs text-studio-muted">
+                                <span id="lock-hint-text">Süre sınırı yok. Renginden emin olduğunda kilitle. Odadaki herkes kilitlediğinde sonuçlar açılır.</span>
+                            </div>
+
+                            <button id="btn-lock-color" onclick="window.app.toggleLockColor()"
+                                class="w-full sm:w-auto min-w-[220px] py-4 px-7 rounded-2xl bg-white hover:bg-gray-100 active:scale-[0.99] text-black font-extrabold text-sm flex items-center justify-center gap-2 shadow-xl shadow-white/10 transition-all">
+                                <i data-lucide="lock" class="w-4 h-4"></i>
+                                <span>RENGİ KİLİTLE</span>
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <!-- ----------------------------------------------------- -->
+                    <!-- STAGE C: ROUND RESULTS & 1..N RANKING REVEAL          -->
+                    <!-- ----------------------------------------------------- -->
+                    <div id="stage-reveal" class="hidden bg-studio-surface border border-studio-border rounded-3xl p-5 sm:p-8 space-y-6">
+                        
+                        <!-- Reveal Header -->
+                        <div class="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-studio-border">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span id="reveal-round-pill" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">TUR 1 SONUÇLARI</span>
+                                    <span class="text-xs font-mono text-studio-muted">En Yakın &rarr; En Yüksek Puan</span>
+                                </div>
+                                <h2 class="text-2xl font-extrabold text-white mt-1.5">Hedef Renk &amp; Yakınlık Sıralaması</h2>
+                            </div>
+
+                            <!-- Next Round / Podium Button (For Host) -->
+                            <div class="flex items-center gap-2">
+                                <button id="btn-next-round" onclick="window.app.handleNextRoundClick()"
+                                    class="hidden px-6 py-3.5 rounded-2xl bg-white hover:bg-gray-100 text-black font-extrabold text-sm flex items-center gap-2 shadow-lg shadow-white/10 transition-all">
+                                    <span id="btn-next-round-label">Sonraki Tura Geç</span>
+                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                </button>
+                                <span id="reveal-guest-wait" class="hidden text-xs font-mono text-studio-muted bg-studio-bg px-3.5 py-2.5 rounded-xl border border-studio-border">
+                                    Kurucunun yeni turu başlatması bekleniyor...
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Target Color Master Banner -->
+                        <div class="bg-studio-card border border-studio-border rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div class="flex items-center gap-4 w-full sm:w-auto">
+                                <div id="reveal-target-swatch" class="w-20 h-20 rounded-2xl swatch-box shrink-0"></div>
+                                <div class="space-y-1">
+                                    <div class="text-[11px] font-mono uppercase tracking-wider text-studio-muted">GERÇEK HEDEF RENK</div>
+                                    <div id="reveal-target-hex" class="text-2xl font-mono font-extrabold text-white">#FF5733</div>
+                                    <div id="reveal-target-hsl" class="text-xs font-mono text-gray-300">H: 11°  S: 100%  L: 60%</div>
+                                </div>
+                            </div>
+
+                            <div class="w-full sm:w-auto bg-studio-bg/90 border border-studio-border rounded-xl p-3.5 text-right font-mono">
+                                <div class="text-[10px] uppercase text-studio-muted">BU TURDAKİ PUAN DAĞILIMI</div>
+                                <div id="reveal-points-formula" class="text-xs text-emerald-400 font-bold mt-1">
+                                    En Yakın: +4 Puan ... En Uzak: +1 Puan
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sort Order Toggle -->
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-xs font-mono uppercase tracking-wider text-gray-400">
+                                OYUNCU TAHMİNLERİ (EN YAKINDAN EN UZAĞA)
+                            </h3>
+                            <button onclick="window.app.toggleRevealSortOrder()" id="btn-sort-order" class="text-xs font-mono text-sky-400 hover:underline flex items-center gap-1">
+                                <i data-lucide="arrow-up-down" class="w-3.5 h-3.5"></i>
+                                <span id="sort-order-label">Sıralama: En Yakın Üstte</span>
+                            </button>
+                        </div>
+
+                        <!-- Ranked Players Cards Container -->
+                        <div id="reveal-rankings-list" class="space-y-3">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+
+                    </div>
+
+                    <!-- ----------------------------------------------------- -->
+                    <!-- STAGE D: FINAL MATCH PODIUM                           -->
+                    <!-- ----------------------------------------------------- -->
+                    <div id="stage-podium" class="hidden bg-studio-surface border border-studio-border rounded-3xl p-6 sm:p-8 space-y-6 text-center">
+                        <div class="space-y-2">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono uppercase">
+                                <i data-lucide="trophy" class="w-3.5 h-3.5"></i>
+                                MAÇ TAMAMLANDI // GENEL KLASMAN
+                            </div>
+                            <h2 class="text-3xl font-extrabold text-white">Kromatik Şampiyonlar</h2>
+                            <p class="text-xs text-studio-muted">Tüm turlar boyunca toplanan sıralama puanları ve ortalama renk doğrulukları</p>
+                        </div>
+
+                        <!-- Podium Cards Container -->
+                        <div id="podium-cards-container" class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                            <!-- Populated dynamically -->
+                        </div>
+
+                        <!-- Full Final Table -->
+                        <div id="podium-full-list" class="space-y-2 text-left pt-4 border-t border-studio-border"></div>
+
+                        <!-- Play Again / Back to Lobby Controls -->
+                        <div class="pt-4 flex flex-wrap items-center justify-center gap-3">
+                            <button id="btn-podium-restart" onclick="window.app.returnToLobbyReset()"
+                                class="hidden px-7 py-4 rounded-2xl bg-white hover:bg-gray-100 text-black font-extrabold text-sm flex items-center gap-2 shadow-xl">
+                                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                                <span>Puanları Sıfırla &amp; Yeni Maç Başlat</span>
+                            </button>
+                            <button onclick="window.app.leaveRoom()" class="px-5 py-4 rounded-2xl bg-studio-card hover:bg-white/10 border border-studio-border text-gray-300 font-semibold text-sm">
+                                Ana Ekrana Dön
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- ========================================================= -->
+                <!-- RIGHT SIDEBAR: LIVE SCOREBOARD & PLAYERS STATUS (4 COLS)  -->
+                <!-- ========================================================= -->
+                <aside class="lg:col-span-4 space-y-6">
+                    <div class="bg-studio-surface border border-studio-border rounded-3xl p-5 sm:p-6 space-y-5 sticky top-24">
+                        
+                        <div class="flex items-center justify-between pb-3 border-b border-studio-border">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
+                                <h3 class="text-sm font-bold text-white uppercase tracking-wider font-mono">Odadaki Oyuncular</h3>
+                            </div>
+                            <span id="sidebar-player-count" class="px-2.5 py-0.5 rounded-full text-xs font-mono bg-white/10 text-white">1 Kişi</span>
+                        </div>
+
+                        <!-- Players Scoreboard List -->
+                        <div id="sidebar-players-list" class="space-y-2.5 max-h-[420px] overflow-y-auto pr-1">
+                            <!-- Populated dynamically -->
+                        </div>
+
+                        <!-- Scoring Legend Mini Box -->
+                        <div class="p-3.5 rounded-2xl bg-studio-bg/90 border border-studio-border space-y-1.5 text-[11px] text-studio-muted">
+                            <div class="font-mono font-semibold text-gray-300 flex items-center justify-between">
+                                <span>BU TUR PUAN ÖDÜLÜ</span>
+                                <span id="sidebar-points-scale" class="text-emerald-400">1 &rarr; 1 Puan</span>
+                            </div>
+                            <p class="leading-relaxed">
+                                En uzak tahmini yapan <strong>+1 puan</strong> alır; hedefe yaklaştıkça her sıra <strong>+1 puan daha fazla</strong> kazanır.
+                            </p>
+                        </div>
+
+                    </div>
+                </aside>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- FOOTER                                                                -->
+    <!-- ===================================================================== -->
+    <footer class="w-full border-t border-studio-border/60 py-4 px-4 text-center text-xs text-studio-muted">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span><strong>DIALED // MULTIPLAYER</strong> — CIE LAB &Delta;E Algısal Renk Eşleştirme</span>
+            <span class="font-mono text-[11px]">En Uzak: 1 Puan &bull; En Yakın: N Puan &bull; Süre Sınırı Yok</span>
+        </div>
+    </footer>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 1: FIREBASE API AYARLARI (Paste Your Own Firebase Config)       -->
+    <!-- ===================================================================== -->
+    <div id="modal-firebase" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="bg-studio-surface border border-studio-border rounded-3xl max-w-xl w-full p-6 sm:p-7 space-y-5 shadow-2xl">
+            <div class="flex items-start justify-between gap-4 border-b border-studio-border pb-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 font-mono text-[10px] uppercase">Firebase Yapılandırması</span>
+                    </div>
+                    <h3 class="text-lg font-bold text-white mt-1">Kendi Firebase API Bilgilerini Gir</h3>
+                    <p class="text-xs text-studio-muted mt-0.5">
+                        Kodun en üstündeki <code class="text-amber-300 font-mono">USER_FIREBASE_CONFIG</code> objesine veya doğrudan aşağıdaki alana kendi Firebase proje ayarlarını yapıştırabilirsin.
+                    </p>
+                </div>
+                <button onclick="window.app.closeFirebaseModal()" class="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Current Mode Status -->
+            <div class="p-3.5 rounded-2xl bg-studio-bg border border-studio-border flex items-center justify-between">
+                <div class="text-xs">
+                    <span class="text-studio-muted">Aktif Senkronizasyon Motoru:</span>
+                    <div id="modal-conn-detail" class="font-mono font-bold text-emerald-400 mt-0.5">Bulut Senkronizasyonu Aktif</div>
+                </div>
+                <span class="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-white/5 text-gray-300">Firestore + Sekmeler Arası Canlı</span>
+            </div>
+
+            <!-- JSON Paste Box -->
+            <div class="space-y-2">
+                <label class="block text-xs font-mono uppercase text-gray-300">
+                    Firebase Config JSON veya JS Objesi Yapıştır:
+                </label>
+                <textarea id="input-firebase-json" rows="7" placeholder='{
+  "apiKey": "AIzaSy...",
+  "authDomain": "projeniz.firebaseapp.com",
+  "projectId": "projeniz",
+  "storageBucket": "projeniz.appspot.com",
+  "messagingSenderId": "123456789",
+  "appId": "1:123456789:web:abcdef"
+}' class="w-full p-3.5 rounded-2xl bg-studio-bg border border-studio-border focus:border-white/50 focus:outline-none font-mono text-xs text-emerald-300 leading-relaxed"></textarea>
+                <p class="text-[11px] text-studio-muted">
+                    Not: Firebase konsolunda <strong>Firestore Database</strong>'i etkinleştirip kuralları test moduna (<code class="text-gray-300">allow read, write: if true;</code>) açmanız yeterlidir.
+                </p>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-end gap-2 pt-2">
+                <button onclick="window.app.closeFirebaseModal()" class="px-4 py-2.5 rounded-xl bg-studio-card hover:bg-white/10 text-gray-300 text-xs font-semibold">
+                    Kapat
+                </button>
+                <button onclick="window.app.applyCustomFirebaseFromModal()" class="px-5 py-2.5 rounded-xl bg-white hover:bg-gray-100 text-black text-xs font-extrabold flex items-center gap-1.5">
+                    <i data-lucide="plug-zap" class="w-4 h-4"></i>
+                    <span>Bu Firebase API ile Bağlan</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 2: HOW TO PLAY & SCORING RULES                                  -->
+    <!-- ===================================================================== -->
+    <div id="modal-rules" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="bg-studio-surface border border-studio-border rounded-3xl max-w-lg w-full p-6 sm:p-7 space-y-5 shadow-2xl">
+            <div class="flex items-start justify-between border-b border-studio-border pb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-white">Nasıl Oynanır &amp; Puanlama Sistemi</h3>
+                    <p class="text-xs text-studio-muted">Dialed // Multiplayer Kuralları</p>
+                </div>
+                <button onclick="window.app.closeRulesModal()" class="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-xs text-gray-300 leading-relaxed">
+                <div class="p-3.5 rounded-2xl bg-studio-card border border-studio-border space-y-1">
+                    <div class="font-bold text-white flex items-center gap-1.5">
+                        <span class="w-5 h-5 rounded-full bg-rose-500/20 text-rose-400 font-mono flex items-center justify-center text-[11px]">1</span>
+                        <span>Hedef Rengi Hafızana Al</span>
+                    </div>
+                    <p class="text-studio-muted pl-6">Tur başladığında odadaki tüm oyuncuların ekranına aynı anda rastgele bir hedef renk gelir.</p>
+                </div>
+
+                <div class="p-3.5 rounded-2xl bg-studio-card border border-studio-border space-y-1">
+                    <div class="font-bold text-white flex items-center gap-1.5">
+                        <span class="w-5 h-5 rounded-full bg-sky-500/20 text-sky-400 font-mono flex items-center justify-center text-[11px]">2</span>
+                        <span>Süre Sınırı Olmadan Rengi Tuttur ve Kilitle</span>
+                    </div>
+                    <p class="text-studio-muted pl-6">Hue (Ton: 0-360°), Saturation (Doygunluk: 0-100%) ve Lightness (Parlaklık: 0-100%) sürgüleriyle rengi ayarla ve <strong>Rengi Kilitle</strong> butonuna bas.</p>
+                </div>
+
+                <div class="p-3.5 rounded-2xl bg-studio-card border border-studio-border space-y-1">
+                    <div class="font-bold text-white flex items-center gap-1.5">
+                        <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono flex items-center justify-center text-[11px]">3</span>
+                        <span>En Uzaktan En Yakına Artan Puanlar (1, 2, 3... N)</span>
+                    </div>
+                    <p class="text-studio-muted pl-6">
+                        Odadaki herkes rengini kilitlediğinde, CIE LAB &Delta;E renk mesafesine göre herkes sıralanır.
+                        <strong>En uzak tahmini yapan oyuncu 1 puan</strong> alır, bir sonraki <strong>2 puan</strong>, bir sonraki <strong>3 puan</strong>... ve <strong>en yakın tahmini yapan oyuncu N puan</strong> (odadaki oyuncu sayısı kadar puan) kazanır!
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button onclick="window.app.closeRulesModal()" class="px-5 py-2.5 rounded-xl bg-white text-black font-bold text-xs">
+                    Anladım, Başlayalım!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- TOAST NOTIFICATION CONTAINER                                          -->
+    <!-- ===================================================================== -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- ===================================================================== -->
+    <!-- APPLICATION & FIREBASE LOGIC                                          -->
+    <!-- ===================================================================== -->
+    <script type="module">
+        // ============================================================================
+        // ★ 1. KENDİ FIREBASE API BİLGİLERİNİZİ BURAYA GİREBİLİRSİNİZ ★
+        // ============================================================================
+        // Kendi sunucunuzda veya bilgisayarınızda çalıştırırken sadece aşağıdaki
+        // USER_FIREBASE_CONFIG içine kendi Firebase projenizin anahtarlarını yapıştırmanız yeterlidir!
+        // ============================================================================
+        const USER_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyAiZeg9DvshCjB1W3IW0gBOrSYqYsfJJW8",
+            authDomain: "dialed-e0ff0.firebaseapp.com",
+            projectId: "dialed-e0ff0",
+            storageBucket: "dialed-e0ff0.firebasestorage.app",
+            messagingSenderId: "907159828251",
+            appId: "1:907159828251:web:5eb1dbd560b7a420e685be",
+            measurementId: "G-MCGDYPCC6L"
+        };
+        // Firebase Modular SDK Imports
+        import { initializeApp, getApps, deleteApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ============================================================================
+        // 2. COLOR SCIENCE UTILITIES (HSL <-> RGB <-> HEX <-> CIE LAB Delta E)
+        // ============================================================================
+        const ColorEngine = {
+            hslToRgb(h, s, l) {
+                s /= 100;
+                l /= 100;
+                const k = n => (n + h / 30) % 12;
+                const a = s * Math.min(l, 1 - l);
+                const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+                return [
+                    Math.round(255 * f(0)),
+                    Math.round(255 * f(8)),
+                    Math.round(255 * f(4))
+                ];
+            },
+
+            hslToHex(h, s, l) {
+                const [r, g, b] = this.hslToRgb(h, s, l);
+                const toHex = x => x.toString(16).padStart(2, '0').toUpperCase();
+                return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+            },
+
+            rgbToLab(r, g, b) {
+                // Convert sRGB to XYZ then to CIE LAB (D65)
+                let [R, G, B] = [r / 255, g / 255, b / 255].map(v =>
+                    v > 0.04045 ? Math.pow((v + 0.055) / 1.055, 2.4) : v / 12.92
+                );
+                let X = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047;
+                let Y = (R * 0.2126 + G * 0.7152 + B * 0.0722) / 1.00000;
+                let Z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
+
+                [X, Y, Z] = [X, Y, Z].map(v =>
+                    v > 0.008856 ? Math.cbrt(v) : (7.787 * v) + (16 / 116)
+                );
+                return [
+                    (116 * Y) - 16,
+                    500 * (X - Y),
+                    200 * (Y - Z)
+                ];
+            },
+
+            /**
+             * Computes perceptual color distance (CIEDE2000-like weighted LAB + HSL perceptual metric)
+             * Returns { deltaE, accuracy (0.00 to 100.00), dH, dS, dL }
+             */
+            compareColors(targetHSL, guessHSL) {
+                const rgb1 = this.hslToRgb(targetHSL.h, targetHSL.s, targetHSL.l);
+                const rgb2 = this.hslToRgb(guessHSL.h, guessHSL.s, guessHSL.l);
+
+                const lab1 = this.rgbToLab(...rgb1);
+                const lab2 = this.rgbToLab(...rgb2);
+
+                const dL_lab = lab1[0] - lab2[0];
+                const dA_lab = lab1[1] - lab2[1];
+                const dB_lab = lab1[2] - lab2[2];
+
+                // Perceptual DeltaE in CIE LAB space
+                const deltaE = Math.sqrt(dL_lab * dL_lab + dA_lab * dA_lab + dB_lab * dB_lab);
+
+                // Circular Hue difference (0 - 180)
+                let rawDH = Math.abs(targetHSL.h - guessHSL.h);
+                const dH = rawDH > 180 ? 360 - rawDH : rawDH;
+                const dS = Math.abs(targetHSL.s - guessHSL.s);
+                const dL = Math.abs(targetHSL.l - guessHSL.l);
+
+                // Convert deltaE into an intuitive 0.00% - 100.00% Dialed accuracy score
+                // Perfect match (deltaE = 0) -> 100.00%
+                const rawScore = 100 * Math.exp(-Math.pow(deltaE / 38, 1.35));
+                const accuracy = Math.max(0, Math.min(100, Number(rawScore.toFixed(2))));
+
+                return {
+                    deltaE: Number(deltaE.toFixed(2)),
+                    accuracy,
+                    dH: Math.round(dH),
+                    dS: Math.round(dS),
+                    dL: Math.round(dL)
+                };
+            },
+
+            /**
+             * Generates a rich, vibrant, memorable target color in HSL
+             */
+            generateRandomTargetColor() {
+                const h = Math.floor(Math.random() * 360);
+                // Avoid muddy pure black/white extremes so the game is fun and fair
+                const s = Math.floor(28 + Math.random() * 68); // 28% - 95%
+                const l = Math.floor(24 + Math.random() * 56); // 24% - 79%
+                return { h, s, l };
+            }
+        };
+
+        // ============================================================================
+        // 3. MAIN MULTIPLAYER APPLICATION STATE & CONTROLLER
+        // ============================================================================
+        class DialedMultiplayerApp {
+            constructor() {
+                // Player Local Identity
+                this.playerId = 'plr_' + Math.random().toString(36).substring(2, 10);
+                this.playerName = '';
+
+                // Firebase & Sync State
+                this.db = null;
+                this.auth = null;
+                this.user = null;
+                this.isUsingCustomFirebase = false;
+                this.isCloudConnected = false;
+                this.appId = typeof __app_id !== 'undefined' ? __app_id : 'dialed-multiplayer-app';
+
+                // Multi-tab instant sync fallback channel
+                this.broadcastChannel = null;
+                this.inMemoryRooms = {};
+
+                // Room & Subscription State
+                this.currentRoomCode = null;
+                this.currentRoomData = null;
+                this.roomUnsubscribe = null;
+                this.lobbyListUnsubscribe = null;
+
+                // Gameplay Local Round State
+                this.localDial = { h: 180, s: 55, l: 50 };
+                this.isLocalLocked = false;
+                this.memorizeTimerInterval = null;
+                this.lastSeenRoundNumber = 0;
+                this.lastProcessedPhase = null;
+                this.sortClosestFirst = true;
+
+                this.init();
+            }
+
+            async init() {
+                // Initialize Lucide icons
+                if (window.lucide) window.lucide.createIcons();
+
+                // Assign default fun Turkish nickname
+                this.randomizeNickname(true);
+
+                // Setup BroadcastChannel for instant multi-tab sync
+                if ('BroadcastChannel' in window) {
+                    this.broadcastChannel = new BroadcastChannel('dialed_gg_multiplayer_channel');
+                    this.broadcastChannel.onmessage = (event) => {
+                        const { type, roomCode, roomData } = event.data || {};
+                        if (type === 'ROOM_UPDATE' && roomCode && roomData) {
+                            this.inMemoryRooms[roomCode] = roomData;
+                            if (this.currentRoomCode === roomCode && !this.isCloudConnected) {
+                                this.onRoomDataUpdated(roomData);
+                            }
+                            if (!this.currentRoomCode && !this.isCloudConnected) {
+                                this.renderActiveRoomsList(Object.values(this.inMemoryRooms));
+                            }
+                        }
+                    };
+                }
+
+                // Initialize sliders visual tracks
+                this.onSliderChange(true);
+
+                // Connect to Firebase (User Config -> Environment Config -> Local Multi-Tab Fallback)
+                await this.initializeFirebaseConnection();
+            }
+
+            // ------------------------------------------------------------------------
+            // FIREBASE INITIALIZATION & CUSTOM CONFIG HANDLER
+            // ------------------------------------------------------------------------
+            hasValidConfig(cfg) {
+                return cfg && typeof cfg === 'object' && cfg.apiKey && cfg.apiKey.trim() !== '' && cfg.projectId && cfg.projectId.trim() !== '';
+            }
+
+            async initializeFirebaseConnection(customConfigOverride = null) {
+                try {
+                    let activeConfig = null;
+
+                    if (this.hasValidConfig(customConfigOverride)) {
+                        activeConfig = customConfigOverride;
+                        this.isUsingCustomFirebase = true;
+                    } else if (this.hasValidConfig(USER_FIREBASE_CONFIG)) {
+                        activeConfig = USER_FIREBASE_CONFIG;
+                        this.isUsingCustomFirebase = true;
+                    } else if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                        activeConfig = JSON.parse(__firebase_config);
+                        this.isUsingCustomFirebase = false;
+                    }
+
+                    if (!activeConfig) {
+                        this.setConnectionStatus('local', 'Yerel Çoklu-Sekme Modu (Firebase API Girilebilir)');
+                        this.renderActiveRoomsList(Object.values(this.inMemoryRooms));
+                        return;
+                    }
+
+                    // Clean up previous Firebase instance if re-initializing
+                    const existingApps = getApps();
+                    for (const existing of existingApps) {
+                        await deleteApp(existing);
+                    }
+
+                    const app = initializeApp(activeConfig);
+                    this.auth = getAuth(app);
+                    this.db = getFirestore(app);
+
+                    // Rule 3: Auth Before Queries
+                    if (!this.isUsingCustomFirebase && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(this.auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(this.auth);
+                    }
+
+                    this.user = this.auth.currentUser;
+                    if (this.user && this.user.uid) {
+                        this.playerId = this.user.uid;
+                    }
+
+                    this.isCloudConnected = true;
+                    const modeLabel = this.isUsingCustomFirebase
+                        ? `Özel Firebase (${activeConfig.projectId})`
+                        : 'Firebase Bulut Aktif';
+                    this.setConnectionStatus('cloud', modeLabel);
+
+                    // Subscribe to open rooms list
+                    this.subscribeToPublicRoomsList();
+
+                } catch (err) {
+                    console.warn('Firebase bağlantı uyarısı (Çoklu-Sekme Moduna geçildi):', err);
+                    this.isCloudConnected = false;
+                    this.setConnectionStatus('local', 'Çoklu-Sekme SenkronModu (API Bekleniyor)');
+                    this.renderActiveRoomsList(Object.values(this.inMemoryRooms));
+                }
+            }
+
+            setConnectionStatus(mode, text) {
+                const dot = document.getElementById('conn-dot');
+                const label = document.getElementById('conn-text');
+                const modalDetail = document.getElementById('modal-conn-detail');
+
+                if (mode === 'cloud') {
+                    dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+                } else {
+                    dot.className = 'w-2 h-2 rounded-full bg-sky-400';
+                }
+                if (label) label.textContent = text;
+                if (modalDetail) modalDetail.textContent = text;
+            }
+
+            // Firestore helper following RULE 1 strict paths
+            getRoomsCollectionRef() {
+                if (this.isUsingCustomFirebase) {
+                    // Standard collection path when user uses their own Firebase project
+                    return collection(this.db, 'artifacts', this.appId, 'public', 'data', 'dialed_rooms');
+                }
+                return collection(this.db, 'artifacts', this.appId, 'public', 'data', 'dialed_rooms');
+            }
+
+            getRoomDocRef(roomCode) {
+                return doc(this.db, 'artifacts', this.appId, 'public', 'data', 'dialed_rooms', roomCode);
+            }
+
+            // ------------------------------------------------------------------------
+            // PUBLIC ROOMS LISTENER
+            // ------------------------------------------------------------------------
+            subscribeToPublicRoomsList() {
+                if (!this.isCloudConnected || !this.user) return;
+                if (this.lobbyListUnsubscribe) this.lobbyListUnsubscribe();
+
+                const colRef = this.getRoomsCollectionRef();
+                this.lobbyListUnsubscribe = onSnapshot(
+                    colRef,
+                    (snapshot) => {
+                        const rooms = [];
+                        snapshot.forEach(docSnap => {
+                            const data = docSnap.data();
+                            if (data && data.roomCode) {
+                                rooms.push(data);
+                            }
+                        });
+                        // Sort newest first in memory (Rule 2: no orderBy in query)
+                        rooms.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+                        this.renderActiveRoomsList(rooms.slice(0, 10));
+                    },
+                    (err) => {
+                        console.warn('Açık odalar dinleme hatası:', err);
+                    }
+                );
+            }
+
+            refreshRoomsList() {
+                if (this.isCloudConnected) {
+                    this.subscribeToPublicRoomsList();
+                    this.showToast('Açık odalar listesi güncellendi.', 'info');
+                } else {
+                    this.renderActiveRoomsList(Object.values(this.inMemoryRooms));
+                }
+            }
+
+            renderActiveRoomsList(rooms) {
+                const container = document.getElementById('active-rooms-list');
+                if (!container) return;
+
+                const validRooms = (rooms || []).filter(r => r && r.players && Object.keys(r.players).length > 0);
+                if (validRooms.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-xs text-studio-muted py-3 text-center bg-studio-bg/50 rounded-xl border border-white/5">
+                            Henüz açık oda yok. İlk odayı sen oluştur!
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = validRooms.map(room => {
+                    const playerCount = Object.keys(room.players || {}).length;
+                    const statusBadge = room.status === 'lobby'
+                        ? '<span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400">Lobide</span>'
+                        : `<span class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-300">Tur ${room.currentRound || 1}</span>`;
+
+                    return `
+                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-studio-bg hover:bg-studio-card border border-studio-border transition-colors">
+                            <div class="flex items-center gap-2.5">
+                                <span class="font-mono font-bold text-xs text-white px-2 py-1 rounded-lg bg-white/5 border border-white/10">${room.roomCode}</span>
+                                <div>
+                                    <div class="text-xs font-semibold text-gray-200">${this.escapeHtml(room.hostName || 'Oda')} Odası</div>
+                                    <div class="text-[10px] text-studio-muted">${playerCount} Oyuncu</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                ${statusBadge}
+                                <button onclick="window.app.joinRoom('${room.roomCode}')" class="px-3 py-1 rounded-lg bg-white hover:bg-gray-200 text-black font-bold text-xs transition-colors">
+                                    Katıl
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // ------------------------------------------------------------------------
+            // PLAYER NICKNAME & ROOM CREATION / JOINING
+            // ------------------------------------------------------------------------
+            randomizeNickname(silent = false) {
+                const prefixes = ['Kroma', 'Piksel', 'Neon', 'Pastel', 'Prizma', 'Spektrum', 'Kobalt', 'ultraviyole', 'Kadmiyum', 'Pantone'];
+                const suffixes = ['Avcısı', 'Ustası', 'Gözü', 'Büyücüsü', 'Gezgini', 'Mimarı', 'Lordu', 'Dedektifi', 'Kaşifi'];
+                const randomName = `${prefixes[Math.floor(Math.random() * prefixes.length)]}${suffixes[Math.floor(Math.random() * suffixes.length)]}${Math.floor(10 + Math.random() * 89)}`;
+                const input = document.getElementById('input-nickname');
+                if (input) input.value = randomName;
+                this.playerName = randomName;
+                if (!silent) this.showToast(`Yeni takma ad: ${randomName}`, 'info');
+            }
+
+            getValidatedNickname() {
+                const input = document.getElementById('input-nickname');
+                const val = input ? input.value.trim() : '';
+                if (!val) {
+                    this.randomizeNickname(true);
+                    return this.playerName;
+                }
+                this.playerName = val.substring(0, 18);
+                return this.playerName;
+            }
+
+            generateRoomCode() {
+                const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                let code = '';
+                for (let i = 0; i < 6; i++) {
+                    code += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                return code;
+            }
+
+            async createRoom() {
+                const nickname = this.getValidatedNickname();
+                const roomCode = this.generateRoomCode();
+
+                const initialRoomData = {
+                    roomCode,
+                    hostId: this.playerId,
+                    hostName: nickname,
+                    status: 'lobby', // 'lobby' | 'playing' | 'reveal' | 'podium'
+                    currentRound: 0,
+                    totalRounds: 5,
+                    memorizeSeconds: 5,
+                    blindPreview: 'show',
+                    targetColor: { h: 210, s: 75, l: 55 },
+                    roundStartedAt: Date.now(),
+                    updatedAt: Date.now(),
+                    players: {
+                        [this.playerId]: {
+                            id: this.playerId,
+                            name: nickname,
+                            isBot: false,
+                            score: 0,
+                            lastRoundPoints: 0,
+                            locked: false,
+                            guess: { h: 180, s: 50, l: 50 },
+                            accuracyHistory: [],
+                            joinedAt: Date.now()
+                        }
+                    }
+                };
+
+                await this.saveRoomState(roomCode, initialRoomData);
+                this.enterRoomView(roomCode, initialRoomData);
+                this.showToast(`Oda oluşturuldu! Kod: ${roomCode}`, 'success');
+            }
+
+            async joinRoomByInput() {
+                const input = document.getElementById('input-room-code');
+                const rawCode = input ? input.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
+                if (!rawCode || rawCode.length < 3) {
+                    this.showToast('Lütfen geçerli bir oda kodu girin.', 'error');
+                    return;
+                }
+                await this.joinRoom(rawCode);
+            }
+
+            async joinRoom(roomCode) {
+                const nickname = this.getValidatedNickname();
+                let roomData = null;
+
+                if (this.isCloudConnected && this.user) {
+                    try {
+                        const snap = await getDoc(this.getRoomDocRef(roomCode));
+                        if (snap.exists()) {
+                            roomData = snap.data();
+                        }
+                    } catch (e) {
+                        console.error('Oda sorgulama hatası:', e);
+                    }
+                } else if (this.inMemoryRooms[roomCode]) {
+                    roomData = this.inMemoryRooms[roomCode];
+                }
+
+                if (!roomData) {
+                    this.showToast(`${roomCode} kodlu oda bulunamadı.`, 'error');
+                    return;
+                }
+
+                // Add or update current player in roomData.players
+                const existingPlayer = (roomData.players && roomData.players[this.playerId]) || null;
+                const updatedPlayers = {
+                    ...(roomData.players || {}),
+                    [this.playerId]: existingPlayer ? {
+                        ...existingPlayer,
+                        name: nickname
+                    } : {
+                        id: this.playerId,
+                        name: nickname,
+                        isBot: false,
+                        score: 0,
+                        lastRoundPoints: 0,
+                        locked: false,
+                        guess: { h: 180, s: 50, l: 50 },
+                        accuracyHistory: [],
+                        joinedAt: Date.now()
+                    }
+                };
+
+                roomData.players = updatedPlayers;
+                roomData.updatedAt = Date.now();
+
+                await this.saveRoomState(roomCode, roomData);
+                this.enterRoomView(roomCode, roomData);
+                this.showToast(`${roomCode} odasına katıldın!`, 'success');
+            }
+
+            async saveRoomState(roomCode, roomData) {
+                this.inMemoryRooms[roomCode] = JSON.parse(JSON.stringify(roomData));
+
+                // Broadcast to any other open browser tabs immediately
+                if (this.broadcastChannel) {
+                    this.broadcastChannel.postMessage({
+                        type: 'ROOM_UPDATE',
+                        roomCode,
+                        roomData: this.inMemoryRooms[roomCode]
+                    });
+                }
+
+                if (this.isCloudConnected && this.user) {
+                    try {
+                        await setDoc(this.getRoomDocRef(roomCode), roomData);
+                    } catch (e) {
+                        console.error('Firestore kaydetme hatası:', e);
+                    }
+                }
+
+                if (this.currentRoomCode === roomCode) {
+                    this.onRoomDataUpdated(roomData);
+                }
+            }
+
+            enterRoomView(roomCode, initialData) {
+                this.currentRoomCode = roomCode;
+                this.lastSeenRoundNumber = 0;
+                this.lastProcessedPhase = null;
+
+                // Toggle main views
+                document.getElementById('view-home').classList.add('hidden');
+                document.getElementById('view-room').classList.remove('hidden');
+                document.getElementById('nav-room-badge').classList.remove('hidden');
+                document.getElementById('nav-room-badge').classList.add('flex');
+                document.getElementById('nav-leave-btn').classList.remove('hidden');
+                document.getElementById('nav-leave-btn').classList.add('flex');
+
+                document.getElementById('nav-room-code').textContent = roomCode;
+                document.getElementById('lobby-room-code').textContent = roomCode;
+
+                // Subscribe to live room updates in Firestore
+                if (this.roomUnsubscribe) this.roomUnsubscribe();
+                if (this.isCloudConnected && this.user) {
+                    this.roomUnsubscribe = onSnapshot(
+                        this.getRoomDocRef(roomCode),
+                        (docSnap) => {
+                            if (docSnap.exists()) {
+                                const data = docSnap.data();
+                                this.onRoomDataUpdated(data);
+                            }
+                        },
+                        (err) => {
+                            console.error('Oda canlı dinleme hatası:', err);
+                        }
+                    );
+                }
+
+                this.onRoomDataUpdated(initialData);
+            }
+
+            async leaveRoom() {
+                if (!this.currentRoomCode) return;
+                const code = this.currentRoomCode;
+
+                if (this.memorizeTimerInterval) {
+                    clearInterval(this.memorizeTimerInterval);
+                    this.memorizeTimerInterval = null;
+                }
+
+                if (this.roomUnsubscribe) {
+                    this.roomUnsubscribe();
+                    this.roomUnsubscribe = null;
+                }
+
+                // Remove player from room if room exists
+                if (this.currentRoomData && this.currentRoomData.players) {
+                    const updatedPlayers = { ...this.currentRoomData.players };
+                    delete updatedPlayers[this.playerId];
+
+                    // Remaining real players
+                    const remainingIds = Object.keys(updatedPlayers);
+                    if (remainingIds.length > 0) {
+                        let newHostId = this.currentRoomData.hostId;
+                        let newHostName = this.currentRoomData.hostName;
+                        if (newHostId === this.playerId) {
+                            const nextReal = remainingIds.find(id => !updatedPlayers[id].isBot) || remainingIds[0];
+                            newHostId = nextReal;
+                            newHostName = updatedPlayers[nextReal].name;
+                        }
+                        const nextRoomData = {
+                            ...this.currentRoomData,
+                            hostId: newHostId,
+                            hostName: newHostName,
+                            players: updatedPlayers,
+                            updatedAt: Date.now()
+                        };
+                        await this.saveRoomState(code, nextRoomData);
+                    }
+                }
+
+                this.currentRoomCode = null;
+                this.currentRoomData = null;
+
+                document.getElementById('view-room').classList.add('hidden');
+                document.getElementById('view-home').classList.remove('hidden');
+                document.getElementById('nav-room-badge').classList.add('hidden');
+                document.getElementById('nav-leave-btn').classList.add('hidden');
+            }
+
+            handleLogoClick() {
+                if (this.currentRoomCode) {
+                    this.leaveRoom();
+                }
+            }
+
+            // ------------------------------------------------------------------------
+            // BOT PLAYERS FOR SOLO / INSTANT MULTIPLAYER TESTING
+            // ------------------------------------------------------------------------
+            async addBotPlayer() {
+                if (!this.currentRoomData || !this.isHost()) return;
+
+                const botNames = ['KromaBot 🤖', 'PantoneAI 🤖', 'SpektrumBot 🤖', 'VektörAI 🤖', 'İrisBot 🤖', 'LumenAI 🤖'];
+                const existingNames = Object.values(this.currentRoomData.players || {}).map(p => p.name);
+                const availableName = botNames.find(n => !existingNames.includes(n)) || `RenkBot-${Math.floor(10 + Math.random() * 89)} 🤖`;
+
+                const botId = 'bot_' + Math.random().toString(36).substring(2, 9);
+                const updatedRoom = {
+                    ...this.currentRoomData,
+                    updatedAt: Date.now(),
+                    players: {
+                        ...this.currentRoomData.players,
+                        [botId]: {
+                            id: botId,
+                            name: availableName,
+                            isBot: true,
+                            botSkill: 0.65 + Math.random() * 0.3, // Varying realistic accuracy
+                            score: 0,
+                            lastRoundPoints: 0,
+                            locked: false,
+                            guess: { h: 180, s: 50, l: 50 },
+                            accuracyHistory: [],
+                            joinedAt: Date.now()
+                        }
+                    }
+                };
+
+                await this.saveRoomState(this.currentRoomCode, updatedRoom);
+                this.showToast(`${availableName} odaya eklendi!`, 'info');
+            }
+
+            async removeBots() {
+                if (!this.currentRoomData || !this.isHost()) return;
+                const filtered = {};
+                Object.values(this.currentRoomData.players || {}).forEach(p => {
+                    if (!p.isBot) filtered[p.id] = p;
+                });
+                const updatedRoom = {
+                    ...this.currentRoomData,
+                    players: filtered,
+                    updatedAt: Date.now()
+                };
+                await this.saveRoomState(this.currentRoomCode, updatedRoom);
+                this.showToast('Bot oyuncular kaldırıldı.', 'info');
+            }
+
+            simulateBotGuesses(roomData) {
+                const target = roomData.targetColor;
+                const players = { ...roomData.players };
+                let changed = false;
+
+                Object.values(players).forEach(p => {
+                    if (p.isBot && !p.locked) {
+                        // Generate human-like guess around target color
+                        const spread = p.botSkill ? (1.15 - p.botSkill) * 45 : 22;
+                        const clamp = (val, min, max) => Math.max(min, Math.min(max, Math.round(val)));
+                        const hOffset = Math.round((Math.random() - 0.5) * 2 * spread * 1.3);
+                        const sOffset = Math.round((Math.random() - 0.5) * 2 * spread);
+                        const lOffset = Math.round((Math.random() - 0.5) * 2 * spread * 0.85);
+
+                        players[p.id] = {
+                            ...p,
+                            locked: true,
+                            guess: {
+                                h: (target.h + hOffset + 360) % 360,
+                                s: clamp(target.s + sOffset, 5, 100),
+                                l: clamp(target.l + lOffset, 8, 95)
+                            }
+                        };
+                        changed = true;
+                    }
+                });
+
+                return { players, changed };
+            }
+
+            // ------------------------------------------------------------------------
+            // ROOM STATE SYNCHRONIZATION & STAGE ROUTING
+            // ------------------------------------------------------------------------
+            isHost() {
+                return this.currentRoomData && this.currentRoomData.hostId === this.playerId;
+            }
+
+            onRoomDataUpdated(roomData) {
+                if (!roomData) return;
+                this.currentRoomData = roomData;
+
+                // Update sidebar player list and points scale
+                this.renderSidebarPlayers(roomData);
+
+                // Route to appropriate stage: 'lobby' | 'playing' | 'reveal' | 'podium'
+                const stages = ['stage-lobby', 'stage-play', 'stage-reveal', 'stage-podium'];
+                stages.forEach(id => document.getElementById(id).classList.add('hidden'));
+
+                if (roomData.status === 'lobby') {
+                    document.getElementById('stage-lobby').classList.remove('hidden');
+                    this.renderLobbyStage(roomData);
+                } else if (roomData.status === 'playing') {
+                    document.getElementById('stage-play').classList.remove('hidden');
+                    this.renderPlayingStage(roomData);
+                } else if (roomData.status === 'reveal') {
+                    document.getElementById('stage-reveal').classList.remove('hidden');
+                    this.renderRevealStage(roomData);
+                } else if (roomData.status === 'podium') {
+                    document.getElementById('stage-podium').classList.remove('hidden');
+                    this.renderPodiumStage(roomData);
+                }
+
+                if (window.lucide) window.lucide.createIcons();
+            }
+
+            // ------------------------------------------------------------------------
+            // STAGE 1: LOBBY RENDER & SETTINGS
+            // ------------------------------------------------------------------------
+            renderLobbyStage(roomData) {
+                const isHost = this.isHost();
+                const playerCount = Object.keys(roomData.players || {}).length;
+
+                document.getElementById('lobby-host-badge').classList.toggle('hidden', !isHost);
+                document.getElementById('host-bot-controls').classList.toggle('hidden', !isHost);
+                document.getElementById('btn-start-game').classList.toggle('hidden', !isHost);
+                document.getElementById('guest-waiting-msg').classList.toggle('hidden', isHost);
+
+                const maxPtsEl = document.getElementById('lobby-max-points');
+                if (maxPtsEl) maxPtsEl.textContent = playerCount;
+
+                // Sync settings selects
+                const selMem = document.getElementById('setting-memorize-time');
+                const selRounds = document.getElementById('setting-total-rounds');
+                const selBlind = document.getElementById('setting-blind-preview');
+
+                if (selMem) {
+                    selMem.value = String(roomData.memorizeSeconds ?? 5);
+                    selMem.disabled = !isHost;
+                }
+                if (selRounds) {
+                    selRounds.value = String(roomData.totalRounds ?? 5);
+                    selRounds.disabled = !isHost;
+                }
+                if (selBlind) {
+                    selBlind.value = roomData.blindPreview || 'show';
+                    selBlind.disabled = !isHost;
+                }
+            }
+
+            async updateRoomSettings() {
+                if (!this.isHost() || !this.currentRoomData) return;
+                const memorizeSeconds = parseInt(document.getElementById('setting-memorize-time').value, 10);
+                const totalRounds = parseInt(document.getElementById('setting-total-rounds').value, 10);
+                const blindPreview = document.getElementById('setting-blind-preview').value;
+
+                const updated = {
+                    ...this.currentRoomData,
+                    memorizeSeconds,
+                    totalRounds,
+                    blindPreview,
+                    updatedAt: Date.now()
+                };
+                await this.saveRoomState(this.currentRoomCode, updated);
+            }
+
+            // ------------------------------------------------------------------------
+            // STAGE 2: ACTIVE GAMEPLAY (MEMORIZE & DIAL IT IN)
+            // ------------------------------------------------------------------------
+            async startNewRound(resetScores = false) {
+                if (!this.isHost() || !this.currentRoomData) return;
+
+                const nextRoundNum = resetScores ? 1 : (this.currentRoomData.currentRound || 0) + 1;
+                const targetColor = ColorEngine.generateRandomTargetColor();
+
+                const resetPlayers = {};
+                Object.values(this.currentRoomData.players || {}).forEach(p => {
+                    resetPlayers[p.id] = {
+                        ...p,
+                        score: resetScores ? 0 : (p.score || 0),
+                        lastRoundPoints: 0,
+                        accuracyHistory: resetScores ? [] : (p.accuracyHistory || []),
+                        locked: false,
+                        guess: { h: 180, s: 50, l: 50 }
+                    };
+                });
+
+                const updatedRoom = {
+                    ...this.currentRoomData,
+                    status: 'playing',
+                    currentRound: nextRoundNum,
+                    targetColor,
+                    roundStartedAt: Date.now(),
+                    updatedAt: Date.now(),
+                    players: resetPlayers
+                };
+
+                // If bots are present, let them lock in their simulated guesses
+                const withBots = this.simulateBotGuesses(updatedRoom);
+                updatedRoom.players = withBots.players;
+
+                await this.saveRoomState(this.currentRoomCode, updatedRoom);
+            }
+
+            renderPlayingStage(roomData) {
+                const isNewRound = this.lastSeenRoundNumber !== roomData.currentRound || this.lastProcessedPhase !== 'playing';
+
+                if (isNewRound) {
+                    this.lastSeenRoundNumber = roomData.currentRound;
+                    this.lastProcessedPhase = 'playing';
+                    this.isLocalLocked = false;
+
+                    // Start player with a neutral randomized starting slider position
+                    this.localDial = {
+                        h: Math.floor(Math.random() * 360),
+                        s: 50,
+                        l: 50
+                    };
+                    document.getElementById('slider-hue').value = this.localDial.h;
+                    document.getElementById('slider-sat').value = this.localDial.s;
+                    document.getElementById('slider-light').value = this.localDial.l;
+                    this.onSliderChange(true);
+
+                    // Start target color memorize countdown
+                    this.startMemorizeCountdown(roomData);
+                }
+
+                // Update Round Badge
+                const roundLabel = roomData.totalRounds >= 999
+                    ? `TUR ${roomData.currentRound}`
+                    : `TUR ${roomData.currentRound} / ${roomData.totalRounds}`;
+                document.getElementById('round-badge').textContent = roundLabel;
+
+                // Paint Target Color Swatch
+                const target = roomData.targetColor;
+                const targetBox = document.getElementById('target-color-box');
+                targetBox.style.backgroundColor = `hsl(${target.h}, ${target.s}%, ${target.l}%)`;
+
+                // Blind Preview Mode Toggle
+                const blindOverlay = document.getElementById('player-blind-overlay');
+                blindOverlay.classList.toggle('hidden', roomData.blindPreview !== 'blind');
+
+                // Check Lock Status of All Players
+                const playersArr = Object.values(roomData.players || {});
+                const lockedCount = playersArr.filter(p => p.locked).length;
+                document.getElementById('locked-counter-pill').textContent = `${lockedCount} / ${playersArr.length} Kilitledi`;
+
+                // Show Host Force Reveal button if at least 1 player or host wants to end round
+                document.getElementById('btn-host-force-reveal').classList.toggle('hidden', !this.isHost());
+
+                // Sync Local Player Lock UI
+                const myPlayer = roomData.players && roomData.players[this.playerId];
+                this.isLocalLocked = !!(myPlayer && myPlayer.locked);
+                this.updateLockButtonUI();
+
+                // Auto-transition to Reveal if ALL players in the room have locked in!
+                if (this.isHost() && playersArr.length > 0 && lockedCount === playersArr.length) {
+                    this.finalizeRoundAndScore();
+                }
+            }
+
+            startMemorizeCountdown(roomData) {
+                if (this.memorizeTimerInterval) {
+                    clearInterval(this.memorizeTimerInterval);
+                    this.memorizeTimerInterval = null;
+                }
+
+                const memSeconds = Number(roomData.memorizeSeconds ?? 5);
+                const hiddenOverlay = document.getElementById('target-hidden-overlay');
+                const progressBar = document.getElementById('memorize-progress-bar');
+                const progressWrap = document.getElementById('memorize-progress-wrap');
+                const timerBadge = document.getElementById('target-timer-badge');
+                const phaseText = document.getElementById('phase-status-text');
+
+                // If Host chose "Hedef Renk Hep Ekranda Kalsın" (0)
+                if (memSeconds === 0) {
+                    hiddenOverlay.classList.add('hidden');
+                    progressWrap.classList.add('hidden');
+                    timerBadge.textContent = 'AÇIK HEDEF';
+                    phaseText.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> Hedef Renge Bakarak Sürgüleri Ayarla & Kilitle`;
+                    return;
+                }
+
+                progressWrap.classList.remove('hidden');
+                hiddenOverlay.classList.add('hidden');
+
+                const durationMs = memSeconds * 1000;
+                const startTime = Date.now();
+
+                this.memorizeTimerInterval = setInterval(() => {
+                    const elapsed = Date.now() - startTime;
+                    const remaining = Math.max(0, durationMs - elapsed);
+                    const pct = (remaining / durationMs) * 100;
+
+                    progressBar.style.width = `${pct}%`;
+                    timerBadge.textContent = `${(remaining / 1000).toFixed(1)}s`;
+
+                    if (remaining <= 0) {
+                        clearInterval(this.memorizeTimerInterval);
+                        this.memorizeTimerInterval = null;
+                        hiddenOverlay.classList.remove('hidden');
+                        timerBadge.textContent = 'GİZLENDİ';
+                        phaseText.innerHTML = `<span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span> Hafızandaki Rengi Tuttur ve Kilitle (Süre Sınırı Yok)`;
+                    }
+                }, 50);
+            }
+
+            // ------------------------------------------------------------------------
+            // SLIDER INTERACTION & LIVE PREVIEW
+            // ------------------------------------------------------------------------
+            onSliderChange(force = false) {
+                if (this.isLocalLocked && !force) return;
+
+                const h = parseInt(document.getElementById('slider-hue').value, 10) || 0;
+                const s = parseInt(document.getElementById('slider-sat').value, 10) || 0;
+                const l = parseInt(document.getElementById('slider-light').value, 10) || 0;
+
+                this.localDial = { h, s, l };
+
+                // Update numeric readouts
+                document.getElementById('val-hue').textContent = `${h}°`;
+                document.getElementById('val-sat').textContent = `${s}%`;
+                document.getElementById('val-light').textContent = `${l}%`;
+
+                // Update dynamic slider track gradients (Authentic Dialed.gg behavior!)
+                const satSlider = document.getElementById('slider-sat');
+                const lightSlider = document.getElementById('slider-light');
+
+                satSlider.style.background = `linear-gradient(to right, hsl(${h}, 0%, ${l}%), hsl(${h}, 100%, ${l}%))`;
+                lightSlider.style.background = `linear-gradient(to right, hsl(${h}, ${s}%, 0%) 0%, hsl(${h}, ${s}%, 50%) 50%, hsl(${h}, ${s}%, 100%) 100%)`;
+
+                // Update Player Swatch & HEX readout
+                const hex = ColorEngine.hslToHex(h, s, l);
+                const playerBox = document.getElementById('player-color-box');
+                const hexReadout = document.getElementById('player-hex-readout');
+
+                if (playerBox) playerBox.style.backgroundColor = `hsl(${h}, ${s}%, ${l}%)`;
+                if (hexReadout) hexReadout.textContent = hex;
+            }
+
+            nudgeSlider(channel, delta) {
+                if (this.isLocalLocked) {
+                    this.showToast('Rengi değiştirmek için önce kilidi açın.', 'info');
+                    return;
+                }
+                if (channel === 'h') {
+                    const el = document.getElementById('slider-hue');
+                    el.value = (parseInt(el.value, 10) + delta + 360) % 360;
+                } else if (channel === 's') {
+                    const el = document.getElementById('slider-sat');
+                    el.value = Math.max(0, Math.min(100, parseInt(el.value, 10) + delta));
+                } else if (channel === 'l') {
+                    const el = document.getElementById('slider-light');
+                    el.value = Math.max(0, Math.min(100, parseInt(el.value, 10) + delta));
+                }
+                this.onSliderChange();
+            }
+
+            async toggleLockColor() {
+                if (!this.currentRoomData || this.currentRoomData.status !== 'playing') return;
+
+                const nextLocked = !this.isLocalLocked;
+                this.isLocalLocked = nextLocked;
+                this.updateLockButtonUI();
+
+                const myCurrent = this.currentRoomData.players[this.playerId] || {
+                    id: this.playerId,
+                    name: this.playerName,
+                    score: 0
+                };
+
+                const updatedPlayers = {
+                    ...this.currentRoomData.players,
+                    [this.playerId]: {
+                        ...myCurrent,
+                        locked: nextLocked,
+                        guess: { ...this.localDial }
+                    }
+                };
+
+                const nextRoomData = {
+                    ...this.currentRoomData,
+                    players: updatedPlayers,
+                    updatedAt: Date.now()
+                };
+
+                await this.saveRoomState(this.currentRoomCode, nextRoomData);
+            }
+
+            updateLockButtonUI() {
+                const btn = document.getElementById('btn-lock-color');
+                const overlay = document.getElementById('player-locked-overlay');
+                const sliders = ['slider-hue', 'slider-sat', 'slider-light'];
+
+                sliders.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.disabled = this.isLocalLocked;
+                });
+
+                if (this.isLocalLocked) {
+                    overlay.classList.remove('hidden');
+                    btn.className = 'w-full sm:w-auto min-w-[220px] py-4 px-7 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-sm flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/20 transition-all';
+                    btn.innerHTML = `<i data-lucide="unlock" class="w-4 h-4"></i><span>KİLİDİ AÇ / DÜZENLE</span>`;
+                } else {
+                    overlay.classList.add('hidden');
+                    btn.className = 'w-full sm:w-auto min-w-[220px] py-4 px-7 rounded-2xl bg-white hover:bg-gray-100 text-black font-extrabold text-sm flex items-center justify-center gap-2 shadow-xl shadow-white/10 transition-all';
+                    btn.innerHTML = `<i data-lucide="lock" class="w-4 h-4"></i><span>RENGİ KİLİTLE</span>`;
+                }
+                if (window.lucide) window.lucide.createIcons();
+            }
+
+            async hostForceReveal() {
+                if (!this.isHost() || !this.currentRoomData) return;
+                await this.finalizeRoundAndScore();
+            }
+
+            // ------------------------------------------------------------------------
+            // STAGE 3: DISTANCE RANKING & 1, 2, 3... N SCORING ENGINE
+            // ------------------------------------------------------------------------
+            /**
+             * Exact Scoring Logic Requested by User:
+             * - Compare every player's guessed color to the room's Target Color.
+             * - Sort players from closest (smallest deltaE) to furthest (largest deltaE).
+             * - If there are N players in the room:
+             *   - Furthest player gets 1 point (+1)
+             *   - Next furthest gets 2 points (+2)
+             *   - ...
+             *   - Closest player gets N points (+N)!
+             */
+            async finalizeRoundAndScore() {
+                if (!this.currentRoomData || this.currentRoomData.status === 'reveal') return;
+
+                if (this.memorizeTimerInterval) {
+                    clearInterval(this.memorizeTimerInterval);
+                    this.memorizeTimerInterval = null;
+                }
+
+                const target = this.currentRoomData.targetColor;
+                const playersObj = { ...this.currentRoomData.players };
+                const playersList = Object.values(playersObj);
+                const N = playersList.length;
+
+                // Evaluate every player's color distance
+                const evaluated = playersList.map(p => {
+                    const guess = p.guess || { h: 180, s: 50, l: 50 };
+                    const metrics = ColorEngine.compareColors(target, guess);
+                    return {
+                        ...p,
+                        guess,
+                        metrics
+                    };
+                });
+
+                // Sort from FURTHEST (index 0 -> 1 point) to CLOSEST (index N-1 -> N points)
+                evaluated.sort((a, b) => b.metrics.deltaE - a.metrics.deltaE);
+
+                const roundRankings = [];
+
+                evaluated.forEach((item, idx) => {
+                    const pointsEarned = idx + 1; // 1 for furthest, 2, 3, ..., N for closest!
+                    const rankPosition = N - idx; // 1st place for closest, Nth place for furthest
+
+                    const prevScore = Number(playersObj[item.id]?.score || 0);
+                    const prevHistory = Array.isArray(playersObj[item.id]?.accuracyHistory)
+                        ? playersObj[item.id].accuracyHistory
+                        : [];
+
+                    playersObj[item.id] = {
+                        ...playersObj[item.id],
+                        score: prevScore + pointsEarned,
+                        lastRoundPoints: pointsEarned,
+                        lastRankPosition: rankPosition,
+                        lastMetrics: item.metrics,
+                        accuracyHistory: [...prevHistory, item.metrics.accuracy]
+                    };
+
+                    roundRankings.push({
+                        playerId: item.id,
+                        name: item.name,
+                        isBot: !!item.isBot,
+                        guess: item.guess,
+                        hex: ColorEngine.hslToHex(item.guess.h, item.guess.s, item.guess.l),
+                        metrics: item.metrics,
+                        pointsEarned,
+                        rankPosition,
+                        totalScoreAfter: prevScore + pointsEarned
+                    });
+                });
+
+                // Sort roundRankings closest-first by default for display
+                roundRankings.sort((a, b) => a.rankPosition - b.rankPosition);
+
+                const updatedRoom = {
+                    ...this.currentRoomData,
+                    status: 'reveal',
+                    players: playersObj,
+                    lastRoundRankings: roundRankings,
+                    updatedAt: Date.now()
+                };
+
+                await this.saveRoomState(this.currentRoomCode, updatedRoom);
+            }
+
+            renderRevealStage(roomData) {
+                this.lastProcessedPhase = 'reveal';
+                const isHost = this.isHost();
+
+                document.getElementById('reveal-round-pill').textContent = `TUR ${roomData.currentRound} SONUÇLARI`;
+
+                // Next Round vs Finish Match Button
+                const isFinalRound = roomData.totalRounds < 999 && roomData.currentRound >= roomData.totalRounds;
+                const nextBtn = document.getElementById('btn-next-round');
+                const nextBtnLabel = document.getElementById('btn-next-round-label');
+                const guestWait = document.getElementById('reveal-guest-wait');
+
+                nextBtn.classList.toggle('hidden', !isHost);
+                guestWait.classList.toggle('hidden', isHost);
+                if (nextBtnLabel) {
+                    nextBtnLabel.textContent = isFinalRound ? 'Final Podyumu Göster' : `Sonraki Tur (Tur ${roomData.currentRound + 1})`;
+                }
+
+                // Target Master Display
+                const target = roomData.targetColor;
+                const targetHex = ColorEngine.hslToHex(target.h, target.s, target.l);
+                document.getElementById('reveal-target-swatch').style.backgroundColor = `hsl(${target.h}, ${target.s}%, ${target.l}%)`;
+                document.getElementById('reveal-target-hex').textContent = targetHex;
+                document.getElementById('reveal-target-hsl').textContent = `H: ${target.h}°   S: ${target.s}%   L: ${target.l}%`;
+
+                const rankings = [...(roomData.lastRoundRankings || [])];
+                const N = rankings.length;
+                document.getElementById('reveal-points-formula').textContent =
+                    N > 1
+                        ? `1. En Yakın: +${N} Puan  •  ...  •  ${N}. En Uzak: +1 Puan`
+                        : `1 Oyuncu: +1 Puan`;
+
+                // Sort according to user toggle (Closest on top vs Furthest on top)
+                if (this.sortClosestFirst) {
+                    rankings.sort((a, b) => a.rankPosition - b.rankPosition);
+                } else {
+                    rankings.sort((a, b) => b.rankPosition - a.rankPosition);
+                }
+
+                const listEl = document.getElementById('reveal-rankings-list');
+                listEl.innerHTML = rankings.map((r, index) => {
+                    const isMe = r.playerId === this.playerId;
+                    const isClosest = r.rankPosition === 1;
+                    const isFurthest = r.rankPosition === N && N > 1;
+
+                    let rankBadgeClass = 'bg-white/10 text-gray-200 border-white/15';
+                    let rankLabel = `${r.rankPosition}. Sıra`;
+                    if (isClosest) {
+                        rankBadgeClass = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
+                        rankLabel = '1. EN YAKIN 🎯';
+                    } else if (isFurthest) {
+                        rankBadgeClass = 'bg-rose-500/15 text-rose-300 border-rose-500/30';
+                        rankLabel = `${r.rankPosition}. EN UZAK`;
+                    }
+
+                    return `
+                        <div class="animate-reveal rounded-2xl bg-studio-card border ${isMe ? 'border-white/40' : 'border-studio-border'} p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4" style="animation-delay: ${index * 60}ms">
+                            
+                            <!-- Left: Split Swatch Comparison (Target vs Player Guess) -->
+                            <div class="flex items-center gap-4 w-full sm:w-auto">
+                                <div class="w-20 h-16 rounded-xl overflow-hidden flex border border-white/15 shadow-inner shrink-0" title="Sol: Hedef Renk | Sağ: Tahmin Edilen Renk">
+                                    <div class="w-1/2 h-full" style="background-color: hsl(${target.h}, ${target.s}%, ${target.l}%)"></div>
+                                    <div class="w-1/2 h-full" style="background-color: hsl(${r.guess.h}, ${r.guess.s}%, ${r.guess.l}%)"></div>
+                                </div>
+
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold border ${rankBadgeClass}">${rankLabel}</span>
+                                        <span class="font-bold text-sm text-white">${this.escapeHtml(r.name)}</span>
+                                        ${isMe ? '<span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white text-black font-bold">SEN</span>' : ''}
+                                    </div>
+                                    <div class="text-xs font-mono text-gray-300">
+                                        Tahmin: <span class="text-white font-semibold">${r.hex}</span> 
+                                        <span class="text-studio-muted ml-1">(H:${r.guess.h}° S:${r.guess.s}% L:${r.guess.l}%)</span>
+                                    </div>
+                                    <div class="text-[11px] font-mono text-studio-muted">
+                                        Sapma: &Delta;H: ${r.metrics.dH}° &bull; &Delta;S: ${r.metrics.dS}% &bull; &Delta;L: ${r.metrics.dL}% (&Delta;E: ${r.metrics.deltaE})
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right: Similarity % & Awarded Points (+1 .. +N) -->
+                            <div class="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto border-t sm:border-t-0 border-studio-border pt-3 sm:pt-0 gap-2 shrink-0">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-studio-muted font-mono">Uyum:</span>
+                                    <span class="text-base font-mono font-extrabold text-white">%${r.metrics.accuracy.toFixed(2)}</span>
+                                </div>
+                                <div class="px-3.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono font-extrabold text-sm">
+                                    +${r.pointsEarned} Puan
+                                </div>
+                            </div>
+
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            toggleRevealSortOrder() {
+                this.sortClosestFirst = !this.sortClosestFirst;
+                const label = document.getElementById('sort-order-label');
+                if (label) {
+                    label.textContent = this.sortClosestFirst
+                        ? 'Sıralama: En Yakın Üstte'
+                        : 'Sıralama: En Uzak Üstte (1 Puan -> N Puan)';
+                }
+                if (this.currentRoomData) {
+                    this.renderRevealStage(this.currentRoomData);
+                }
+            }
+
+            async handleNextRoundClick() {
+                if (!this.isHost() || !this.currentRoomData) return;
+                const isFinalRound = this.currentRoomData.totalRounds < 999 && this.currentRoomData.currentRound >= this.currentRoomData.totalRounds;
+                if (isFinalRound) {
+                    const updated = {
+                        ...this.currentRoomData,
+                        status: 'podium',
+                        updatedAt: Date.now()
+                    };
+                    await this.saveRoomState(this.currentRoomCode, updated);
+                } else {
+                    await this.startNewRound(false);
+                }
+            }
+
+            // ------------------------------------------------------------------------
+            // STAGE 4: PODIUM & MATCH SUMMARY
+            // ------------------------------------------------------------------------
+            renderPodiumStage(roomData) {
+                const isHost = this.isHost();
+                document.getElementById('btn-podium-restart').classList.toggle('hidden', !isHost);
+
+                const players = Object.values(roomData.players || {}).sort((a, b) => (b.score || 0) - (a.score || 0));
+                const top3 = players.slice(0, 3);
+
+                const podiumContainer = document.getElementById('podium-cards-container');
+                podiumContainer.innerHTML = top3.map((p, idx) => {
+                    const medals = ['🥇 1. ŞAMPİYON', '🥈 2. İKİNCİ', '🥉 3. ÜÇÜNCÜ'];
+                    const borderColors = [
+                        'border-amber-400/50 bg-amber-500/10',
+                        'border-gray-300/40 bg-white/5',
+                        'border-amber-700/40 bg-amber-900/10'
+                    ];
+                    const hist = Array.isArray(p.accuracyHistory) && p.accuracyHistory.length > 0
+                        ? (p.accuracyHistory.reduce((a, b) => a + b, 0) / p.accuracyHistory.length).toFixed(1)
+                        : '0.0';
+
+                    return `
+                        <div class="p-5 rounded-2xl border ${borderColors[idx]} flex flex-col items-center justify-between space-y-3">
+                            <span class="text-xs font-mono font-bold uppercase tracking-wider text-amber-300">${medals[idx]}</span>
+                            <div class="text-lg font-extrabold text-white">${this.escapeHtml(p.name)}</div>
+                            <div class="text-3xl font-mono font-black text-emerald-400">${p.score || 0} <span class="text-xs font-normal text-gray-300">Puan</span></div>
+                            <div class="text-[11px] font-mono text-studio-muted">Ortalama Uyum: %${hist}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                const fullListEl = document.getElementById('podium-full-list');
+                fullListEl.innerHTML = players.map((p, i) => {
+                    const hist = Array.isArray(p.accuracyHistory) && p.accuracyHistory.length > 0
+                        ? (p.accuracyHistory.reduce((a, b) => a + b, 0) / p.accuracyHistory.length).toFixed(1)
+                        : '0.0';
+                    return `
+                        <div class="flex items-center justify-between px-4 py-3 rounded-xl bg-studio-card border border-studio-border">
+                            <div class="flex items-center gap-3">
+                                <span class="font-mono font-bold text-xs text-studio-muted w-6">#${i + 1}</span>
+                                <span class="font-semibold text-sm text-white">${this.escapeHtml(p.name)}</span>
+                            </div>
+                            <div class="flex items-center gap-4 font-mono text-xs">
+                                <span class="text-studio-muted">Ort. %${hist}</span>
+                                <span class="font-bold text-emerald-400 text-sm">${p.score || 0} Puan</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            async returnToLobbyReset() {
+                if (!this.isHost() || !this.currentRoomData) return;
+                const resetPlayers = {};
+                Object.values(this.currentRoomData.players || {}).forEach(p => {
+                    resetPlayers[p.id] = {
+                        ...p,
+                        score: 0,
+                        lastRoundPoints: 0,
+                        locked: false,
+                        accuracyHistory: []
+                    };
+                });
+
+                const updated = {
+                    ...this.currentRoomData,
+                    status: 'lobby',
+                    currentRound: 0,
+                    players: resetPlayers,
+                    updatedAt: Date.now()
+                };
+                await this.saveRoomState(this.currentRoomCode, updated);
+            }
+
+            // ------------------------------------------------------------------------
+            // RIGHT SIDEBAR SCOREBOARD RENDERER
+            // ------------------------------------------------------------------------
+            renderSidebarPlayers(roomData) {
+                const players = Object.values(roomData.players || {});
+                const N = players.length;
+
+                document.getElementById('sidebar-player-count').textContent = `${N} Oyuncu`;
+                document.getElementById('sidebar-points-scale').textContent = N > 1 ? `1 &rarr; ${N} Puan` : `1 Puan`;
+
+                // Sort by cumulative score descending
+                players.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+                const listEl = document.getElementById('sidebar-players-list');
+                listEl.innerHTML = players.map((p, idx) => {
+                    const isMe = p.id === this.playerId;
+                    const isRoomHost = p.id === roomData.hostId;
+
+                    let statusPill = '';
+                    if (roomData.status === 'playing') {
+                        statusPill = p.locked
+                            ? `<span class="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 font-mono text-[10px] font-bold">Kilitledi ✓</span>`
+                            : `<span class="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 font-mono text-[10px] animate-pulse">Ayarlıyor...</span>`;
+                    } else if (roomData.status === 'reveal' && p.lastRoundPoints) {
+                        statusPill = `<span class="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">+${p.lastRoundPoints}p</span>`;
+                    }
+
+                    return `
+                        <div class="p-3 rounded-2xl bg-studio-card border ${isMe ? 'border-white/35' : 'border-studio-border'} flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <span class="w-6 h-6 rounded-lg bg-studio-bg border border-studio-border font-mono text-xs font-bold text-gray-300 flex items-center justify-center shrink-0">
+                                    ${idx + 1}
+                                </span>
+                                <div class="truncate">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="font-semibold text-xs text-white truncate">${this.escapeHtml(p.name)}</span>
+                                        ${isRoomHost ? '<span class="text-[10px]" title="Oda Kurucusu">👑</span>' : ''}
+                                        ${isMe ? '<span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/15 text-white">SEN</span>' : ''}
+                                    </div>
+                                    <div class="text-[11px] font-mono text-studio-muted">
+                                        Toplam: <strong class="text-emerald-400">${p.score || 0} Puan</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="shrink-0">
+                                ${statusPill}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // ------------------------------------------------------------------------
+            // MODALS, CLIPBOARD & TOAST HELPERS
+            // ------------------------------------------------------------------------
+            openFirebaseModal() {
+                const modal = document.getElementById('modal-firebase');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+
+            closeFirebaseModal() {
+                const modal = document.getElementById('modal-firebase');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+
+            async applyCustomFirebaseFromModal() {
+                const raw = document.getElementById('input-firebase-json').value.trim();
+                if (!raw) {
+                    this.showToast('Lütfen Firebase yapılandırma JSON bilgisini yapıştırın.', 'error');
+                    return;
+                }
+
+                try {
+                    // Normalize JS object literal or JSON string
+                    const normalized = raw
+                        .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?\s*:/g, '"$2":')
+                        .replace(/'/g, '"');
+                    const parsed = JSON.parse(normalized);
+
+                    if (!this.hasValidConfig(parsed)) {
+                        this.showToast('apiKey ve projectId alanları zorunludur.', 'error');
+                        return;
+                    }
+
+                    await this.initializeFirebaseConnection(parsed);
+                    this.closeFirebaseModal();
+                    this.showToast(`Firebase projesine (${parsed.projectId}) başarıyla bağlanıldı!`, 'success');
+                } catch (err) {
+                    this.showToast('Geçersiz JSON formatı. Lütfen kontrol edin.', 'error');
+                }
+            }
+
+            openRulesModal() {
+                const modal = document.getElementById('modal-rules');
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+
+            closeRulesModal() {
+                const modal = document.getElementById('modal-rules');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+
+            copyRoomCode() {
+                if (!this.currentRoomCode) return;
+                const tempInput = document.createElement('input');
+                tempInput.value = this.currentRoomCode;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                this.showToast(`Oda kodu kopyalandı: ${this.currentRoomCode}`, 'success');
+            }
+
+            showToast(message, type = 'info') {
+                const container = document.getElementById('toast-container');
+                if (!container) return;
+
+                const colors = {
+                    success: 'border-emerald-500/40 bg-studio-surface text-emerald-300',
+                    error: 'border-rose-500/40 bg-studio-surface text-rose-300',
+                    info: 'border-studio-border bg-studio-surface text-gray-200'
+                };
+
+                const toast = document.createElement('div');
+                toast.className = `px-4 py-3 rounded-2xl border shadow-2xl text-xs font-medium flex items-center gap-2 transition-all duration-300 ${colors[type] || colors.info}`;
+                toast.innerHTML = `<span>${this.escapeHtml(message)}</span>`;
+                container.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateY(8px)';
+                    setTimeout(() => toast.remove(), 300);
+                }, 3200);
+            }
+
+            escapeHtml(str) {
+                return String(str || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+        }
+
+        // Start App on Window Load
+        window.addEventListener('DOMContentLoaded', () => {
+            window.app = new DialedMultiplayerApp();
+        });
+    </script>
+</body>
+</html>
